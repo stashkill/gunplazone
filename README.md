@@ -1,6 +1,6 @@
 # GunplaZone - Flutter Mobile App
 
-Aplikasi mobile e-commerce untuk toko Gundam dengan fitur lengkap termasuk CRUD produk, autentikasi Google, chat support, checkout, dan light/dark mode.
+Aplikasi mobile gunplazone dengan fitur lengkap termasuk CRUD produk, autentikasi Google, chat support, checkout, dan light/dark mode.
 
 ## Fitur Utama
 
@@ -267,14 +267,5 @@ flutter pub run build_runner build --delete-conflicting-outputs
 - Use `Consumer` atau `Provider.of` untuk access state
 - Avoid rebuilding entire widget tree
 
-## License
-
-MIT License - Lihat LICENSE file untuk detail
-
-## Support
-
-Untuk pertanyaan atau issues, silakan buat GitHub issue atau hubungi tim development.
-
 ---
-
-**Happy Coding! 🚀**
+=
