@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
-import '../../widgets/bottom_nav_bar.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -13,241 +12,188 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
+        centerTitle: true,
+        elevation: 0,
       ),
       body: Consumer2<AuthProvider, ThemeProvider>(
         builder: (context, authProvider, themeProvider, _) {
+          if (!authProvider.isAuthenticated) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.person_outline, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text('Not logged in'),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: () => context.go('/sign-in'),
+                    child: const Text('Sign In'),
+                  ),
+                ],
+              ),
+            );
+          }
+
           return SingleChildScrollView(
             child: Column(
               children: [
-                // User Info Section
-                Padding(
+                // Profile Header
+                Container(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).primaryColor,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            authProvider.user?.name?.isNotEmpty == true
-                                ? authProvider.user!.name![0].toUpperCase()
-                                : 'U',
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Theme.of(context).primaryColor,
+                        child: Text(
+                          (authProvider.userName ?? 'U').substring(0, 1).toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        authProvider.user?.name ?? 'User',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        authProvider.user?.email ?? '',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
+                        authProvider.userName ?? 'User',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        authProvider.email ?? 'No email',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: authProvider.isAdmin
-                              ? Colors.orange.withOpacity(0.2)
-                              : Colors.blue.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
+                          color: authProvider.isAdmin ? Colors.red[100] : Colors.blue[100],
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           authProvider.isAdmin ? 'Admin' : 'User',
                           style: TextStyle(
+                            color: authProvider.isAdmin ? Colors.red : Colors.blue,
+                            fontWeight: FontWeight.bold,
                             fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: authProvider.isAdmin ? Colors.orange : Colors.blue,
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                // Stats Section
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard(context, 'Orders', '5'),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatCard(context, 'Favorites', '12'),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildStatCard(context, 'Reviews', '3'),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
+                const Divider(),
                 // Menu Items
                 _buildMenuItem(
                   context,
-                  Icons.shopping_bag_outlined,
-                  'My Orders',
-                  () => context.push('/orders'),
+                  icon: Icons.shopping_bag_outlined,
+                  title: 'My Orders',
+                  onTap: () => context.go('/home/orders'),
                 ),
                 _buildMenuItem(
                   context,
-                  Icons.favorite_outline,
-                  'Favorites',
-                  () {},
+                  icon: Icons.favorite_outline,
+                  title: 'Favorites',
+                  onTap: () => context.go('/home/favorites'),
                 ),
                 _buildMenuItem(
                   context,
-                  Icons.location_on_outlined,
-                  'Addresses',
-                  () {},
+                  icon: Icons.location_on_outlined,
+                  title: 'Addresses',
+                  onTap: () {},
                 ),
                 _buildMenuItem(
                   context,
-                  Icons.payment_outlined,
-                  'Payment Methods',
-                  () {},
+                  icon: Icons.payment_outlined,
+                  title: 'Payment Methods',
+                  onTap: () {},
                 ),
-                _buildMenuItem(
-                  context,
-                  Icons.notifications_outlined,
-                  'Notifications',
-                  () {},
-                ),
-                const Divider(height: 32),
-                // Theme Toggle
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            themeProvider.isDarkMode ? Icons.dark_mode : Icons.light_mode,
-                            color: Theme.of(context).primaryColor,
-                          ),
-                          const SizedBox(width: 16),
-                          Text(
-                            'Dark Mode',
-                            style: Theme.of(context).textTheme.titleMedium,
-                          ),
-                        ],
-                      ),
-                      Switch(
-                        value: themeProvider.isDarkMode,
-                        onChanged: (_) => themeProvider.toggleTheme(),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 32),
-                // Admin Panel (if admin)
                 if (authProvider.isAdmin)
                   _buildMenuItem(
                     context,
-                    Icons.admin_panel_settings_outlined,
-                    'Admin Panel',
-                    () => context.push('/admin'),
+                    icon: Icons.admin_panel_settings_outlined,
+                    title: 'Admin Panel',
+                    onTap: () => context.go('/home/admin'),
                   ),
-                // Logout
+                const Divider(),
+                // Settings
+                _buildMenuItem(
+                  context,
+                  icon: Icons.brightness_6_outlined,
+                  title: 'Dark Mode',
+                  trailing: Switch(
+                    value: themeProvider.isDarkMode,
+                    onChanged: (value) => themeProvider.toggleTheme(),
+                  ),
+                ),
+                _buildMenuItem(
+                  context,
+                  icon: Icons.notifications_outlined,
+                  title: 'Notifications',
+                  onTap: () {},
+                ),
+                _buildMenuItem(
+                  context,
+                  icon: Icons.help_outline,
+                  title: 'Help & Support',
+                  onTap: () {},
+                ),
+                _buildMenuItem(
+                  context,
+                  icon: Icons.info_outline,
+                  title: 'About',
+                  onTap: () {},
+                ),
+                const Divider(),
+                // Logout Button
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: SizedBox(
                     width: double.infinity,
                     height: 48,
-                    child: OutlinedButton(
+                    child: ElevatedButton(
                       onPressed: () => _handleLogout(context, authProvider),
-                      child: const Text('Logout'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                      ),
+                      child: const Text(
+                        'Logout',
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           );
         },
       ),
-      bottomNavigationBar: BottomNavBar(
-        currentIndex: 3,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              context.go('/home');
-              break;
-            case 1:
-              context.go('/cart');
-              break;
-            case 2:
-              context.go('/chat');
-              break;
-            case 3:
-              context.go('/profile');
-              break;
-          }
-        },
-      ),
-    );
-  }
-
-  Widget _buildStatCard(BuildContext context, String label, String value) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Theme.of(context).primaryColor,
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-      ),
     );
   }
 
   Widget _buildMenuItem(
-    BuildContext context,
-    IconData icon,
-    String label,
-    VoidCallback onTap,
-  ) {
+      BuildContext context, {
+        required IconData icon,
+        required String title,
+        VoidCallback? onTap,
+        Widget? trailing,
+      }) {
     return ListTile(
       leading: Icon(icon, color: Theme.of(context).primaryColor),
-      title: Text(label),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      title: Text(title),
+      trailing: trailing ?? const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: onTap,
     );
   }
 
-  Future<void> _handleLogout(BuildContext context, AuthProvider authProvider) async {
+  void _handleLogout(BuildContext context, AuthProvider authProvider) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -260,13 +206,13 @@ class ProfileScreen extends StatelessWidget {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context);
               await authProvider.logout();
               if (context.mounted) {
+                Navigator.pop(context);
                 context.go('/sign-in');
               }
             },
-            child: const Text('Logout'),
+            child: const Text('Logout', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),

@@ -1,195 +1,139 @@
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../models/models.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:3000/api';
-  late Dio _dio;
+  static const String baseUrl = 'http://10.0.2.2:3000/api';
 
-  ApiService() {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: baseUrl,
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
-      ),
-    );
+  final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: baseUrl,
+      connectTimeout: const Duration(seconds: 5 ),
+      receiveTimeout: const Duration(seconds: 5),
+    ),
+  );
 
-    _dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          final prefs = await SharedPreferences.getInstance();
-          final token = prefs.getString('auth_token');
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
-          }
-          return handler.next(options);
-        },
-        onError: (error, handler) {
-          if (error.response?.statusCode == 401) {
-            // Handle unauthorized
-          }
-          return handler.next(error);
-        },
-      ),
-    );
-  }
-
-  // Auth Endpoints
-  Future<Map<String, dynamic>> loginWithGoogle(String idToken) async {
+  // Get all products
+  Future<List<dynamic>> getProducts() async {
     try {
-      final response = await _dio.post(
-        '/auth/google',
-        data: {'idToken': idToken},
-      );
-      return response.data;
+      final response = await _dio.get('/products');
+      final data = response.data;
+
+      // Handle jika response adalah Map dengan 'data' field
+      if (data is Map && data['data'] != null) {
+        return List<dynamic>.from(data['data']);
+      }
+
+      // Handle jika response langsung List
+      if (data is List) {
+        return data;
+      }
+
+      return [];
     } catch (e) {
-      rethrow;
+      print('Error fetching products: $e');
+      return [];
     }
   }
 
-  Future<void> logout() async {
-    try {
-      await _dio.post('/auth/logout');
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('auth_token');
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  // Product Endpoints
-  Future<List<Product>> getProducts({String? category}) async {
-    try {
-      final params = category != null ? {'category': category} : null;
-      final response = await _dio.get('/products', queryParameters: params);
-      final List<dynamic> data = response.data['data'] ?? [];
-      return data.map((p) => Product.fromJson(p as Map<String, dynamic>)).toList();
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  Future<Product> getProduct(int id) async {
+  // Get product by ID
+  Future<dynamic> getProduct(int id) async {
     try {
       final response = await _dio.get('/products/$id');
-      return Product.fromJson(response.data['data']);
+      return response.data;
     } catch (e) {
-      rethrow;
+      print('Error fetching product: $e');
+      return null;
     }
   }
 
-  Future<Product> createProduct(Product product) async {
+  // Create product
+  Future<dynamic> createProduct(Map<String, dynamic> product) async {
     try {
-      final response = await _dio.post(
-        '/products',
-        data: product.toJson(),
-      );
-      return Product.fromJson(response.data['data']);
+      final response = await _dio.post('/products', data: product);
+      return response.data;
     } catch (e) {
-      rethrow;
+      print('Error creating product: $e');
+      return null;
     }
   }
 
-  Future<Product> updateProduct(int id, Product product) async {
+  // Update product
+  Future<dynamic> updateProduct(int id, Map<String, dynamic> product) async {
     try {
-      final response = await _dio.put(
-        '/products/$id',
-        data: product.toJson(),
-      );
-      return Product.fromJson(response.data['data']);
+      final response = await _dio.put('/products/$id', data: product);
+      return response.data;
     } catch (e) {
-      rethrow;
+      print('Error updating product: $e');
+      return null;
     }
   }
 
-  Future<void> deleteProduct(int id) async {
+  // Delete product
+  Future<bool> deleteProduct(int id) async {
     try {
       await _dio.delete('/products/$id');
+      return true;
     } catch (e) {
-      rethrow;
+      print('Error deleting product: $e');
+      return false;
     }
   }
 
-  // Order Endpoints
-  Future<Order> createOrder(Order order) async {
+  // Get user
+  Future<dynamic> getUser(String email) async {
     try {
-      final response = await _dio.post(
-        '/orders',
-        data: order.toJson(),
-      );
-      return Order.fromJson(response.data['data']);
+      final response = await _dio.get('/users/$email');
+      return response.data;
     } catch (e) {
-      rethrow;
+      print('Error fetching user: $e');
+      return null;
     }
   }
 
-  Future<List<Order>> getUserOrders() async {
+  // Create user
+  Future<dynamic> createUser(String email, String name) async {
     try {
-      final response = await _dio.get('/orders');
-      final List<dynamic> data = response.data['data'] ?? [];
-      return data.map((o) => Order.fromJson(o as Map<String, dynamic>)).toList();
+      final response = await _dio.post('/users', data: {
+        'email': email,
+        'name': name,
+        'role': 'user',
+      });
+      return response.data;
     } catch (e) {
-      rethrow;
+      print('Error creating user: $e');
+      return null;
     }
   }
 
-  Future<Order> getOrder(int id) async {
+  // Create order
+  Future<dynamic> createOrder(Map<String, dynamic> order) async {
     try {
-      final response = await _dio.get('/orders/$id');
-      return Order.fromJson(response.data['data']);
+      final response = await _dio.post('/orders', data: order);
+      return response.data;
     } catch (e) {
-      rethrow;
+      print('Error creating order: $e');
+      return null;
     }
   }
 
-  // Chat Endpoints
-  Future<List<ChatMessage>> getChatMessages() async {
+  // Get user orders
+  Future<List<dynamic>> getUserOrders(int userId) async {
     try {
-      final response = await _dio.get('/chat/messages');
-      final List<dynamic> data = response.data['data'] ?? [];
-      return data.map((m) => ChatMessage.fromJson(m as Map<String, dynamic>)).toList();
+      final response = await _dio.get('/orders/user/$userId');
+      return response.data;
     } catch (e) {
-      rethrow;
+      print('Error fetching orders: $e');
+      return [];
     }
   }
 
-  Future<ChatMessage> sendChatMessage(String message) async {
+  // Health check
+  Future<bool> healthCheck() async {
     try {
-      final response = await _dio.post(
-        '/chat/messages',
-        data: {'message': message},
-      );
-      return ChatMessage.fromJson(response.data['data']);
+      final response = await _dio.get('/health');
+      return response.statusCode == 200;
     } catch (e) {
-      rethrow;
-    }
-  }
-
-  // Favorites Endpoints
-  Future<List<Favorite>> getFavorites() async {
-    try {
-      final response = await _dio.get('/favorites');
-      final List<dynamic> data = response.data['data'] ?? [];
-      return data.map((f) => Favorite.fromJson(f as Map<String, dynamic>)).toList();
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  Future<void> addFavorite(int productId) async {
-    try {
-      await _dio.post('/favorites', data: {'productId': productId});
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  Future<void> removeFavorite(int productId) async {
-    try {
-      await _dio.delete('/favorites/$productId');
-    } catch (e) {
-      rethrow;
+      print('Backend not available: $e');
+      return false;
     }
   }
 }

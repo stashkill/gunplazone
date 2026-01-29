@@ -29,6 +29,59 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
+  void _handlePlaceOrder(BuildContext context, CartProvider cartProvider, AuthProvider authProvider) async {
+    if (_addressController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter shipping address')),
+      );
+      return;
+    }
+
+    setState(() => _isProcessing = true);
+
+    try {
+      // Convert userId from String to int
+      final userId = int.tryParse(authProvider.userId ?? '0') ?? 0;
+
+      // Create order object
+      final order = {
+        'userId': userId,
+        'items': cartProvider.items,
+        'totalAmount': cartProvider.totalPrice, // Use actual cart total
+        'shippingAddress': _addressController.text,
+        'deliveryOption': _selectedDelivery,
+        'paymentMethod': _selectedPayment,
+      };
+
+      // TODO: Send to backend API
+      // await ApiService.createOrder(order);
+
+      // Simulate processing
+      await Future.delayed(const Duration(seconds: 1));
+
+      // Clear cart
+      cartProvider.clearCart();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Order placed successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        context.go('/home/orders');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      setState(() => _isProcessing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,8 +107,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       Text(
                         'SHIPPING',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextField(
@@ -63,6 +116,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         decoration: InputDecoration(
                           hintText: 'Enter shipping address',
                           labelText: 'Shipping Address',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                         maxLines: 3,
                       ),
@@ -71,56 +127,74 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       Text(
                         'DELIVERY',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      _buildDeliveryOption(
-                        'Standard',
-                        'Free',
-                        '3-4 days',
-                      ),
-                      const SizedBox(height: 8),
-                      _buildDeliveryOption(
-                        'Express',
-                        'Rp 50.000',
-                        '1-2 days',
+                      Column(
+                        children: [
+                          RadioListTile<String>(
+                            title: const Text('Standard (Free)'),
+                            value: 'Standard',
+                            groupValue: _selectedDelivery,
+                            onChanged: (value) {
+                              setState(() => _selectedDelivery = value ?? 'Standard');
+                            },
+                          ),
+                          RadioListTile<String>(
+                            title: const Text('Express (Rp 50.000)'),
+                            value: 'Express',
+                            groupValue: _selectedDelivery,
+                            onChanged: (value) {
+                              setState(() => _selectedDelivery = value ?? 'Express');
+                            },
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 24),
                       // Payment Method
                       Text(
                         'PAYMENT',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      _buildPaymentOption('Credit Card', 'Visa *1234'),
-                      const SizedBox(height: 8),
-                      _buildPaymentOption('Debit Card', 'Mandiri *5678'),
-                      const SizedBox(height: 8),
-                      _buildPaymentOption('E-Wallet', 'GCash'),
-                    ],
-                  ),
-                ),
-                // Order Summary
-                Container(
-                  margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.outline,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                      Column(
+                        children: [
+                          RadioListTile<String>(
+                            title: const Text('Credit Card'),
+                            value: 'Credit Card',
+                            groupValue: _selectedPayment,
+                            onChanged: (value) {
+                              setState(() => _selectedPayment = value ?? 'Credit Card');
+                            },
+                          ),
+                          RadioListTile<String>(
+                            title: const Text('Bank Transfer'),
+                            value: 'Bank Transfer',
+                            groupValue: _selectedPayment,
+                            onChanged: (value) {
+                              setState(() => _selectedPayment = value ?? 'Bank Transfer');
+                            },
+                          ),
+                          RadioListTile<String>(
+                            title: const Text('E-Wallet'),
+                            value: 'E-Wallet',
+                            groupValue: _selectedPayment,
+                            onChanged: (value) {
+                              setState(() => _selectedPayment = value ?? 'E-Wallet');
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      // Order Summary
                       Text(
                         'ORDER SUMMARY',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       // Items
@@ -144,7 +218,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   ),
                                 ),
                                 Text(
-                                  item.product.formattedPrice,
+                                  'Rp ${item.product.price}',
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
@@ -176,7 +250,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('Taxes', style: Theme.of(context).textTheme.bodyMedium),
-                          Text('Rp 2.000', style: Theme.of(context).textTheme.bodyMedium),
+                          Text('Rp ${(cartProvider.totalPrice * 0.1).toInt()}', style: Theme.of(context).textTheme.bodyMedium),
                         ],
                       ),
                       const Divider(height: 16),
@@ -186,42 +260,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           Text(
                             'Total',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           Text(
-                            'Rp 21.980',
+                            'Rp ${(cartProvider.totalPrice + (cartProvider.totalPrice * 0.1).toInt()).toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.')}',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).primaryColor,
-                                ),
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).primaryColor,
+                            ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 24),
+                      // Place Order Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _isProcessing ? null : () => _handlePlaceOrder(context, cartProvider, authProvider),
+                          child: _isProcessing
+                              ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                              : const Text('Place Order'),
+                        ),
+                      ),
                     ],
-                  ),
-                ),
-                // Place Order Button
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: _isProcessing || _addressController.text.isEmpty
-                          ? null
-                          : () => _handlePlaceOrder(context, cartProvider, authProvider),
-                      child: _isProcessing
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            )
-                          : const Text('Place Order'),
-                    ),
                   ),
                 ),
               ],
@@ -230,118 +297,5 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         },
       ),
     );
-  }
-
-  Widget _buildDeliveryOption(String label, String price, String time) {
-    return GestureDetector(
-      onTap: () => setState(() => _selectedDelivery = label),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: _selectedDelivery == label
-                ? Theme.of(context).primaryColor
-                : Theme.of(context).colorScheme.outline,
-            width: _selectedDelivery == label ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Radio<String>(
-              value: label,
-              groupValue: _selectedDelivery,
-              onChanged: (value) => setState(() => _selectedDelivery = value!),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: Theme.of(context).textTheme.titleSmall),
-                  Text(time, style: Theme.of(context).textTheme.bodySmall),
-                ],
-              ),
-            ),
-            Text(price, style: Theme.of(context).textTheme.titleSmall),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPaymentOption(String label, String details) {
-    return GestureDetector(
-      onTap: () => setState(() => _selectedPayment = label),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: _selectedPayment == label
-                ? Theme.of(context).primaryColor
-                : Theme.of(context).colorScheme.outline,
-            width: _selectedPayment == label ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Radio<String>(
-              value: label,
-              groupValue: _selectedPayment,
-              onChanged: (value) => setState(() => _selectedPayment = value!),
-            ),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: Theme.of(context).textTheme.titleSmall),
-                  Text(details, style: Theme.of(context).textTheme.bodySmall),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handlePlaceOrder(
-    BuildContext context,
-    CartProvider cartProvider,
-    AuthProvider authProvider,
-  ) async {
-    setState(() => _isProcessing = true);
-    try {
-      // Simulate order processing
-      await Future.delayed(const Duration(seconds: 2));
-      
-      // Create order
-      final order = cartProvider.createOrder(
-        userId: authProvider.user?.id ?? 0,
-        shippingAddress: _addressController.text,
-        deliveryOption: _selectedDelivery,
-        paymentMethod: _selectedPayment,
-      );
-
-      // Clear cart
-      cartProvider.clearCart();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Order placed successfully!')),
-        );
-        context.go('/home');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isProcessing = false);
-      }
-    }
   }
 }

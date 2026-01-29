@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:go_router/go_router.dart';
 import '../../providers/chat_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/bottom_nav_bar.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({Key? key}) : super(key: key);
@@ -21,7 +19,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _messageController = TextEditingController();
     _scrollController = ScrollController();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<ChatProvider>(context, listen: false).fetchMessages();
     });
@@ -49,10 +47,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Customer Support'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
+        elevation: 0,
       ),
       body: Consumer2<ChatProvider, AuthProvider>(
         builder: (context, chatProvider, authProvider, _) {
@@ -67,61 +62,61 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: chatProvider.isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: chatProvider.messages.length,
-                        itemBuilder: (context, index) {
-                          final message = chatProvider.messages[index];
-                          final isUserMessage = message.isUserMessage;
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: chatProvider.messages.length,
+                  itemBuilder: (context, index) {
+                    final message = chatProvider.messages[index];
+                    final isUserMessage = message['isUserMessage'] ?? false;
 
-                          return Align(
-                            alignment: isUserMessage
-                                ? Alignment.centerRight
-                                : Alignment.centerLeft,
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
+                    return Align(
+                      alignment: isUserMessage
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isUserMessage
+                              ? Theme.of(context).primaryColor
+                              : Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.75,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: isUserMessage
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              message['message'] ?? '',
+                              style: TextStyle(
                                 color: isUserMessage
-                                    ? Theme.of(context).primaryColor
-                                    : Theme.of(context).colorScheme.surface,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              constraints: BoxConstraints(
-                                maxWidth: MediaQuery.of(context).size.width * 0.75,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: isUserMessage
-                                    ? CrossAxisAlignment.end
-                                    : CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    message.message,
-                                    style: TextStyle(
-                                      color: isUserMessage
-                                          ? Colors.white
-                                          : Theme.of(context).textTheme.bodyMedium?.color,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _formatTime(message.timestamp),
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: isUserMessage
-                                          ? Colors.white70
-                                          : Theme.of(context).textTheme.bodySmall?.color,
-                                    ),
-                                  ),
-                                ],
+                                    ? Colors.white
+                                    : Theme.of(context).textTheme.bodyMedium?.color,
                               ),
                             ),
-                          );
-                        },
+                            const SizedBox(height: 4),
+                            Text(
+                              _formatTime(message['timestamp']),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isUserMessage
+                                    ? Colors.white70
+                                    : Theme.of(context).textTheme.bodySmall?.color,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    );
+                  },
+                ),
               ),
               // Message Input
               Container(
@@ -169,15 +164,16 @@ class _ChatScreenState extends State<ChatScreen> {
                       onPressed: _messageController.text.isEmpty
                           ? null
                           : () {
-                              final message = _messageController.text;
-                              _messageController.clear();
-                              Provider.of<ChatProvider>(context, listen: false)
-                                  .sendMessage(message, authProvider.user?.id ?? 0);
-                              Future.delayed(
-                                const Duration(milliseconds: 300),
-                                _scrollToBottom,
-                              );
-                            },
+                        final message = _messageController.text;
+                        _messageController.clear();
+                        final userId = int.tryParse(authProvider.userId ?? '0') ?? 0;
+                        Provider.of<ChatProvider>(context, listen: false)
+                            .sendMessage(message, userId);
+                        Future.delayed(
+                          const Duration(milliseconds: 300),
+                          _scrollToBottom,
+                        );
+                      },
                       child: const Icon(Icons.send),
                     ),
                   ],
@@ -187,31 +183,28 @@ class _ChatScreenState extends State<ChatScreen> {
           );
         },
       ),
-      bottomNavigationBar: BottomNavBar(
-        currentIndex: 2,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              context.go('/home');
-              break;
-            case 1:
-              context.go('/cart');
-              break;
-            case 2:
-              context.go('/chat');
-              break;
-            case 3:
-              context.go('/profile');
-              break;
-          }
-        },
-      ),
+
     );
   }
 
-  String _formatTime(DateTime dateTime) {
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+  String _formatTime(String? timestamp) {
+    if (timestamp == null) return '';
+    try {
+      final dateTime = DateTime.parse(timestamp);
+      final now = DateTime.now();
+      final difference = now.difference(dateTime);
+
+      if (difference.inSeconds < 60) {
+        return 'now';
+      } else if (difference.inMinutes < 60) {
+        return '${difference.inMinutes}m ago';
+      } else if (difference.inHours < 24) {
+        return '${difference.inHours}h ago';
+      } else {
+        return '${dateTime.day}/${dateTime.month}';
+      }
+    } catch (e) {
+      return '';
+    }
   }
 }

@@ -7,6 +7,33 @@ import '../../widgets/bottom_nav_bar.dart';
 class CartScreen extends StatelessWidget {
   const CartScreen({Key? key}) : super(key: key);
 
+  Widget _buildCartImage(String imageUrl) {
+    if (imageUrl.isEmpty) {
+      return Icon(Icons.image_outlined, color: Colors.grey[400]);
+    }
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Icon(Icons.broken_image_outlined, color: Colors.grey[400]);
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                  : null,
+              strokeWidth: 2,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,10 +93,7 @@ class CartScreen extends StatelessWidget {
                                 color: Theme.of(context).colorScheme.surface,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Icon(
-                                Icons.image_not_supported,
-                                color: Theme.of(context).textTheme.bodySmall?.color,
-                              ),
+                              child: _buildCartImage(item.product.imageUrl),
                             ),
                             const SizedBox(width: 12),
                             // Product Info
@@ -87,8 +111,8 @@ class CartScreen extends StatelessWidget {
                                   Text(
                                     item.product.formattedPrice,
                                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                          color: Theme.of(context).primaryColor,
-                                        ),
+                                      color: Theme.of(context).primaryColor,
+                                    ),
                                   ),
                                   const SizedBox(height: 8),
                                   // Quantity Controls
@@ -164,7 +188,7 @@ class CartScreen extends StatelessWidget {
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: () => context.push('/checkout'),
+                        onPressed: () => context.push('/home/checkout'),
                         child: const Text('Proceed to Checkout'),
                       ),
                     ),
@@ -183,13 +207,13 @@ class CartScreen extends StatelessWidget {
               context.go('/home');
               break;
             case 1:
-              context.go('/cart');
+              context.go('/home/cart');
               break;
             case 2:
-              context.go('/chat');
+              context.go('/home/chat');
               break;
             case 3:
-              context.go('/profile');
+              context.go('/home/profile');
               break;
           }
         },

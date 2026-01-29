@@ -60,15 +60,31 @@ class Product {
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
+    // Helper function to convert dynamic to int
+    int _toInt(dynamic value) {
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value) ?? 0;
+      if (value is double) return value.toInt();
+      return 0;
+    }
+
+    // Helper function to convert dynamic to double
+    double _toDouble(dynamic value) {
+      if (value is double) return value;
+      if (value is int) return value.toDouble();
+      if (value is String) return double.tryParse(value) ?? 0.0;
+      return 0.0;
+    }
+
     return Product(
-      id: json['id'] as int,
-      name: json['name'] as String,
+      id: _toInt(json['id']),
+      name: json['name'] as String? ?? '',
       description: json['description'] as String? ?? '',
       category: json['category'] as String? ?? '',
-      price: json['price'] as int,
-      imageUrl: json['imageUrl'] as String? ?? '',
-      stock: json['stock'] as int? ?? 0,
-      rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
+      price: _toInt(json['price']),
+      imageUrl: json['image_url'] as String? ?? json['imageUrl'] as String? ?? '',
+      stock: _toInt(json['stock']),
+      rating: _toDouble(json['rating'] ?? 0.0),
       createdAt: DateTime.parse(json['createdAt'] as String? ?? DateTime.now().toIso8601String()),
     );
   }
@@ -152,8 +168,8 @@ class Order {
       id: json['id'] as int,
       userId: json['userId'] as int,
       items: (json['items'] as List<dynamic>?)
-              ?.map((item) => CartItem.fromJson(item as Map<String, dynamic>))
-              .toList() ??
+          ?.map((item) => CartItem.fromJson(item as Map<String, dynamic>))
+          .toList() ??
           [],
       totalAmount: json['totalAmount'] as int,
       status: json['status'] as String? ?? 'pending',

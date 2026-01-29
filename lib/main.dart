@@ -24,29 +24,44 @@ void main() {
   );
 }
 
-class GunplaZoneApp extends StatelessWidget {
+class GunplaZoneApp extends StatefulWidget {
   const GunplaZoneApp({Key? key}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final authProvider = Provider.of<AuthProvider>(context);
+  State<GunplaZoneApp> createState() => _GunplaZoneAppState();
+}
 
-    return MaterialApp.router(
-      title: 'GunplaZone',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      routerConfig: AppRoutes.router(authProvider.isAuthenticated),
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('id', 'ID'),
-        Locale('en', 'US'),
-      ],
+class _GunplaZoneAppState extends State<GunplaZoneApp> {
+  late final _appRouter;
+
+  @override
+  void initState() {
+    super.initState();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    _appRouter = AppRoutes.createRouter(authProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer2<ThemeProvider, AuthProvider>(
+      builder: (context, themeProvider, authProvider, _) {
+        return MaterialApp.router(
+          title: 'GunplaZone',
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          routerConfig: _appRouter,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('id', 'ID'),
+            Locale('en', 'US'),
+          ],
+        );
+      },
     );
   }
 }
