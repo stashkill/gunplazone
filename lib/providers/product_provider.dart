@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import '../services/api_service.dart';
 
 class ProductProvider extends ChangeNotifier {
@@ -27,7 +28,6 @@ class ProductProvider extends ChangeNotifier {
 
     try {
       final response = await _apiService.getProducts();
-      print('✅ API Response: $response');
 
       if (response.isNotEmpty) {
         _products = List<Map<String, dynamic>>.from(
@@ -39,11 +39,10 @@ class ProductProvider extends ChangeNotifier {
             'category': p['category'] ?? 'Uncategorized',
             'stock': p['stock'] ?? 0,
             'image_url': p['image_url'] ?? '',
+            'rating': p['rating'] ?? 0.0,
           }),
         );
-        print('✅ Loaded ${_products.length} products from API');
 
-        // Filter by category if specified
         if (category != null && category != 'All') {
           _filteredProducts = _products
               .where((p) => p['category'] == category)
@@ -52,12 +51,10 @@ class ProductProvider extends ChangeNotifier {
           _filteredProducts = [];
         }
       } else {
-        print('❌ Empty response, loading mock products');
         _loadMockProducts();
       }
     } catch (e) {
       _error = 'Failed to fetch products: $e';
-      print('❌ Error fetching products: $e');
       _loadMockProducts();
     }
 
@@ -90,22 +87,13 @@ class ProductProvider extends ChangeNotifier {
     try {
       final response = await _apiService.createProduct(product);
       if (response != null) {
-        _products.add({
-          'id': response['id'] ?? 0,
-          'name': response['name'] ?? 'Unknown',
-          'description': response['description'] ?? '',
-          'price': response['price'] ?? 0,
-          'category': response['category'] ?? 'Uncategorized',
-          'stock': response['stock'] ?? 0,
-          'image_url': response['image_url'] ?? '',
-        });
-        _isLoading = false;
-        notifyListeners();
+        await fetchProducts(); // Refresh list
         return true;
       }
+    } on DioException catch (e) {
+      _error = _parseDioError(e);
     } catch (e) {
-      _error = 'Failed to create product: $e';
-      print('Error creating product: $e');
+      _error = 'Unexpected error: $e';
     }
 
     _isLoading = false;
@@ -122,25 +110,13 @@ class ProductProvider extends ChangeNotifier {
     try {
       final response = await _apiService.updateProduct(id, product);
       if (response != null) {
-        final index = _products.indexWhere((p) => p['id'] == id);
-        if (index != -1) {
-          _products[index] = {
-            'id': response['id'] ?? id,
-            'name': response['name'] ?? 'Unknown',
-            'description': response['description'] ?? '',
-            'price': response['price'] ?? 0,
-            'category': response['category'] ?? 'Uncategorized',
-            'stock': response['stock'] ?? 0,
-            'image_url': response['image_url'] ?? '',
-          };
-        }
-        _isLoading = false;
-        notifyListeners();
+        await fetchProducts(); // Refresh list
         return true;
       }
+    } on DioException catch (e) {
+      _error = _parseDioError(e);
     } catch (e) {
-      _error = 'Failed to update product: $e';
-      print('Error updating product: $e');
+      _error = 'Unexpected error: $e';
     }
 
     _isLoading = false;
@@ -164,7 +140,6 @@ class ProductProvider extends ChangeNotifier {
       }
     } catch (e) {
       _error = 'Failed to delete product: $e';
-      print('Error deleting product: $e');
     }
 
     _isLoading = false;
@@ -172,7 +147,20 @@ class ProductProvider extends ChangeNotifier {
     return false;
   }
 
-  // Load mock products (fallback)
+  String _parseDioError(DioException e) {
+    if (e.response != null) {
+      final data = e.response?.data;
+      if (data is Map && data['message'] != null) {
+        return 'Server Error: ${data['message']}';
+      }
+      if (data is Map && data['error'] != null) {
+        return 'Server Error: ${data['error']}';
+      }
+      return 'Server Error (${e.response?.statusCode}): ${e.response?.statusMessage}';
+    }
+    return 'Network Error: ${e.message}';
+  }
+
   void _loadMockProducts() {
     _products = [
       {
@@ -183,82 +171,19 @@ class ProductProvider extends ChangeNotifier {
         'category': 'HG',
         'stock': 10,
         'image_url': 'https://via.placeholder.com/300',
-      },
-      {
-        'id': 2,
-        'name': 'HGCE 1/144 Mighty Strike Freedom',
-        'description': 'High Grade Cosmic Era',
-        'price': 219800,
-        'category': 'HGCE',
-        'stock': 5,
-        'image_url': 'https://via.placeholder.com/300',
-      },
-      {
-        'id': 3,
-        'name': 'PG 1/60 RX-78-2 Gundam',
-        'description': 'Perfect Grade Original Gundam',
-        'price': 899000,
-        'category': 'PG',
-        'stock': 2,
-        'image_url': 'https://via.placeholder.com/300',
-      },
-      {
-        'id': 4,
-        'name': 'RG 1/144 Sazabi',
-        'description': 'Real Grade Sazabi',
-        'price': 159900,
-        'category': 'RG',
-        'stock': 8,
-        'image_url': 'https://via.placeholder.com/300',
-      },
-      {
-        'id': 5,
-        'name': 'MG 1/100 Unicorn Gundam',
-        'description': 'Master Grade Unicorn',
-        'price': 349900,
-        'category': 'MG',
-        'stock': 3,
-        'image_url': 'https://via.placeholder.com/300',
-      },
-      {
-        'id': 6,
-        'name': 'HG 1/144 Barbatos',
-        'description': 'High Grade Barbatos',
-        'price': 129900,
-        'category': 'HG',
-        'stock': 12,
-        'image_url': 'https://via.placeholder.com/300',
-      },
-      {
-        'id': 7,
-        'name': 'RE/100 Jagd Doga',
-        'description': 'Real Experience Jagd Doga',
-        'price': 179900,
-        'category': 'RE/100',
-        'stock': 4,
-        'image_url': 'https://via.placeholder.com/300',
-      },
-      {
-        'id': 8,
-        'name': 'HG 1/144 Exia',
-        'description': 'High Grade Exia',
-        'price': 119900,
-        'category': 'HG',
-        'stock': 9,
-        'image_url': 'https://via.placeholder.com/300',
+        'rating': 4.5,
       },
     ];
   }
 
-  // Get products by category
-  List<Map<String, dynamic>> getProductsByCategory(String category) {
-    return _products.where((p) => p['category'] == category).toList();
-  }
-
-  // Clear filtered products
   void clearFilter() {
     _filteredProducts = [];
     _selectedCategory = null;
     notifyListeners();
+  }
+
+  // Update token untuk API calls
+  void updateToken(String? token) {
+    _apiService.updateToken(token);
   }
 }

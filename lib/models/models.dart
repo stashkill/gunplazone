@@ -96,7 +96,7 @@ class Product {
       'description': description,
       'category': category,
       'price': price,
-      'imageUrl': imageUrl,
+      'image_url': imageUrl,
       'stock': stock,
       'rating': rating,
       'createdAt': createdAt.toIso8601String(),

@@ -3,32 +3,70 @@ import 'package:dio/dio.dart';
 class ApiService {
   static const String baseUrl = 'http://10.0.2.2:3000/api';
 
-  final Dio _dio = Dio(
-    BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 5 ),
-      receiveTimeout: const Duration(seconds: 5),
-    ),
-  );
+  late final Dio _dio;
+  String? _token;
+
+  ApiService() {
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    // Tambahkan interceptor untuk logging detail request/response
+    _dio.interceptors.add(LogInterceptor(
+      requestBody: true,
+      responseBody: true,
+      logPrint: (obj) => print('🌐 API LOG: $obj'),
+    ));
+
+    // Interceptor untuk menambahkan token ke header secara dinamis
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        if (_token != null && _token!.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $_token';
+        }
+        return handler.next(options);
+      },
+    ));
+  }
+
+  // Update token untuk autentikasi
+  void updateToken(String? token) {
+    _token = token;
+    print('🔑 API Token updated: ${token != null ? "SET" : "CLEARED"}');
+  }
 
   // Get all products
-  Future<List<dynamic>> getProducts() async {
+  Future<List<dynamic>> getProducts({int retryCount = 0}) async {
     try {
       final response = await _dio.get('/products');
       final data = response.data;
 
-      // Handle jika response adalah Map dengan 'data' field
-      if (data is Map && data['data'] != null) {
-        return List<dynamic>.from(data['data']);
+      // Log untuk debugging data yang diterima
+      print('🌐 API GET Response: $data');
+
+      if (data is Map) {
+        if (data['data'] != null) return List<dynamic>.from(data['data']);
+        if (data['products'] != null) return List<dynamic>.from(data['products']);
       }
 
-      // Handle jika response langsung List
       if (data is List) {
         return data;
       }
 
       return [];
     } catch (e) {
+      if (retryCount < 2 && (e is DioException && (e.type == DioExceptionType.receiveTimeout || e.type == DioExceptionType.connectionTimeout))) {
+        print('🌐 API LOG: Timeout detected, retrying... (${retryCount + 1})');
+        return getProducts(retryCount: retryCount + 1);
+      }
       print('Error fetching products: $e');
       return [];
     }
@@ -45,11 +83,33 @@ class ApiService {
     }
   }
 
+  // Helper untuk membersihkan data secara paksa (Hard-Clean)
+  Map<String, dynamic> _hardCleanData(Map<String, dynamic> data) {
+    // Hanya izinkan field yang ada di database MySQL Anda
+    final Map<String, dynamic> clean = {
+      'name': data['name']?.toString() ?? '',
+      'category': data['category']?.toString() ?? '',
+      'price': int.tryParse(data['price']?.toString() ?? '0') ?? 0,
+      'stock': int.tryParse(data['stock']?.toString() ?? '0') ?? 0,
+      'description': data['description']?.toString() ?? '',
+      'image_url': (data['image_url'] ?? data['imageUrl'])?.toString() ?? '',
+      'rating': double.tryParse(data['rating']?.toString() ?? '0.0') ?? 0.0,
+    };
+
+    // LOGGING INTERNAL UNTUK MEMASTIKAN DATA BERSIH
+    print('🛡️ HARD-CLEAN: Data prepared for server: $clean');
+    return clean;
+  }
+
   // Create product
   Future<dynamic> createProduct(Map<String, dynamic> product) async {
     try {
-      final response = await _dio.post('/products', data: product);
+      final sanitizedData = _hardCleanData(product);
+      final response = await _dio.post('/products', data: sanitizedData);
       return response.data;
+    } on DioException catch (e) {
+      print('❌ Dio Error (Create): ${e.response?.statusCode} - ${e.response?.data}');
+      rethrow;
     } catch (e) {
       print('Error creating product: $e');
       return null;
@@ -59,8 +119,12 @@ class ApiService {
   // Update product
   Future<dynamic> updateProduct(int id, Map<String, dynamic> product) async {
     try {
-      final response = await _dio.put('/products/$id', data: product);
+      final sanitizedData = _hardCleanData(product);
+      final response = await _dio.put('/products/$id', data: sanitizedData);
       return response.data;
+    } on DioException catch (e) {
+      print('❌ Dio Error (Update): ${e.response?.statusCode} - ${e.response?.data}');
+      rethrow;
     } catch (e) {
       print('Error updating product: $e');
       return null;

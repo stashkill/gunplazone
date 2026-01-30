@@ -7,6 +7,7 @@ class AuthProvider extends ChangeNotifier {
   String? _userId;
   String? _userName;
   String? _userRole; // 'user' atau 'admin'
+  String? _token; // Token autentikasi
   bool _isAuthenticated = false;
   bool _isLoading = false;
   String? _error;
@@ -16,6 +17,7 @@ class AuthProvider extends ChangeNotifier {
   String? get userId => _userId;
   String? get userName => _userName;
   String? get userRole => _userRole;
+  String? get token => _token;
   bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -33,12 +35,14 @@ class AuthProvider extends ChangeNotifier {
       final savedUserName = prefs.getString('userName');
       final savedUserRole = prefs.getString('userRole');
       final savedUserId = prefs.getString('userId');
+      final savedToken = prefs.getString('token');
 
       if (savedEmail != null) {
         _email = savedEmail;
         _userName = savedUserName ?? 'User';
         _userRole = savedUserRole ?? 'user';
         _userId = savedUserId ?? savedEmail;
+        _token = savedToken;
         _isAuthenticated = true;
         notifyListeners();
       }
@@ -55,11 +59,12 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // Set user info - IMPORTANT: This sets _isAuthenticated to true
-  void setUser(String email, String name, {String role = 'user', String? userId}) {
+  void setUser(String email, String name, {String role = 'user', String? userId, String? token}) {
     _email = email;
     _userName = name;
     _userRole = role;
     _userId = userId ?? email;
+    _token = token ?? 'dummy_token_${email}'; // Gunakan dummy token jika tidak ada
     _isAuthenticated = true; // ✅ CRITICAL: Set to true when user logs in
     _error = null;
 
@@ -78,6 +83,7 @@ class AuthProvider extends ChangeNotifier {
       await prefs.setString('userName', _userName ?? 'User');
       await prefs.setString('userRole', _userRole ?? 'user');
       await prefs.setString('userId', _userId ?? '');
+      await prefs.setString('token', _token ?? '');
     } catch (e) {
       print('Save user error: $e');
     }
@@ -190,11 +196,13 @@ class AuthProvider extends ChangeNotifier {
       await prefs.remove('userName');
       await prefs.remove('userRole');
       await prefs.remove('userId');
+      await prefs.remove('token');
 
       _email = null;
       _userId = null;
       _userName = null;
       _userRole = null;
+      _token = null;
       _isAuthenticated = false;
       _error = null;
 

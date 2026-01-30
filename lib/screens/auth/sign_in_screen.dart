@@ -228,7 +228,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
                 // Subtitle
                 Text(
-                  'Create an account',
+                  'Login to your account',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),

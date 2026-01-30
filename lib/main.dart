@@ -45,6 +45,12 @@ class _GunplaZoneAppState extends State<GunplaZoneApp> {
   Widget build(BuildContext context) {
     return Consumer2<ThemeProvider, AuthProvider>(
       builder: (context, themeProvider, authProvider, _) {
+        // Sync token to ProductProvider whenever auth state changes
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Provider.of<ProductProvider>(context, listen: false)
+              .updateToken(authProvider.token);
+        });
+
         return MaterialApp.router(
           title: 'GunplaZone',
           theme: AppTheme.lightTheme,

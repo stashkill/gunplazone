@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../providers/product_provider.dart';
 
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({Key? key}) : super(key: key);
@@ -9,30 +11,14 @@ class AdminPanelScreen extends StatefulWidget {
 }
 
 class _AdminPanelScreenState extends State<AdminPanelScreen> {
-  // Mock products data
-  final List<Map<String, dynamic>> products = [
-    {
-      'id': 1,
-      'name': 'HG 1/144 Kamgfer',
-      'category': 'HG',
-      'price': 109900,
-      'stock': 15,
-    },
-    {
-      'id': 2,
-      'name': 'HGCE 1/144 Mighty Strike Freedom',
-      'category': 'HGCE',
-      'price': 219800,
-      'stock': 8,
-    },
-    {
-      'id': 3,
-      'name': 'PG 1/60 RX-78-2 Gundam',
-      'category': 'PG',
-      'price': 899000,
-      'stock': 3,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // Fetch products when screen is loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ProductProvider>(context, listen: false).fetchProducts();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,75 +29,95 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => Provider.of<ProductProvider>(context, listen: false).fetchProducts(),
+          ),
+        ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: products.length,
-        itemBuilder: (context, index) {
-          final product = products[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Consumer<ProductProvider>(
+        builder: (context, productProvider, child) {
+          if (productProvider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final products = productProvider.products;
+
+          if (products.isEmpty) {
+            return const Center(child: Text('No products found'));
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              product['name'] as String,
-                              style: Theme.of(context).textTheme.titleMedium,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Chip(
-                                  label: Text(product['category'] as String),
-                                  backgroundColor:
-                                      Theme.of(context).primaryColor.withOpacity(0.1),
-                                ),
-                                const SizedBox(width: 8),
                                 Text(
-                                  'Stock: ${product['stock']}',
-                                  style: Theme.of(context).textTheme.bodySmall,
+                                  product['name'] as String,
+                                  style: Theme.of(context).textTheme.titleMedium,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Chip(
+                                      label: Text(product['category'] as String),
+                                      backgroundColor:
+                                      Theme.of(context).primaryColor.withOpacity(0.1),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Stock: ${product['stock']}',
+                                      style: Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Rp ${(product['price'] as int).toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.')}',
+                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    color: Theme.of(context).primaryColor,
+                                  ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Rp ${(product['price'] as int).toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.')}',
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Column(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () => _showEditDialog(context, product),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            color: Colors.red,
-                            onPressed: () => _showDeleteDialog(context, product),
+                          Column(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () => _showEditDialog(context, product),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete),
+                                color: Colors.red,
+                                onPressed: () => _showDeleteDialog(context, product),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           );
         },
       ),
@@ -151,11 +157,16 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Product deleted')),
-              );
+            onPressed: () async {
+              final productProvider = Provider.of<ProductProvider>(context, listen: false);
+              final success = await productProvider.deleteProduct(product['id'] as int);
+
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(success ? 'Product deleted' : 'Failed to delete product')),
+                );
+              }
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
@@ -184,6 +195,9 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
   late TextEditingController _priceController;
   late TextEditingController _stockController;
   late TextEditingController _descriptionController;
+  late TextEditingController _imageUrlController;
+  late TextEditingController _ratingController;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -202,7 +216,15 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
     _stockController = TextEditingController(
       text: widget.isEdit && product != null ? (product['stock'] ?? 0).toString() : '',
     );
-    _descriptionController = TextEditingController();
+    _descriptionController = TextEditingController(
+      text: widget.isEdit && product != null ? (product['description'] ?? '') as String : '',
+    );
+    _imageUrlController = TextEditingController(
+      text: widget.isEdit && product != null ? (product['image_url'] ?? '') as String : '',
+    );
+    _ratingController = TextEditingController(
+      text: widget.isEdit && product != null ? (product['rating'] ?? 0.0).toString() : '0.0',
+    );
   }
 
   @override
@@ -212,6 +234,8 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
     _priceController.dispose();
     _stockController.dispose();
     _descriptionController.dispose();
+    _imageUrlController.dispose();
+    _ratingController.dispose();
     super.dispose();
   }
 
@@ -230,7 +254,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
             const SizedBox(height: 12),
             TextField(
               controller: _categoryController,
-              decoration: const InputDecoration(labelText: 'Category'),
+              decoration: const InputDecoration(labelText: 'Category (e.g. HG, MG, RG)'),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -246,6 +270,18 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
             ),
             const SizedBox(height: 12),
             TextField(
+              controller: _ratingController,
+              decoration: const InputDecoration(labelText: 'Rating (0.0 - 5.0)'),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _imageUrlController,
+              decoration: const InputDecoration(labelText: 'Image URL'),
+              keyboardType: TextInputType.url,
+            ),
+            const SizedBox(height: 12),
+            TextField(
               controller: _descriptionController,
               decoration: const InputDecoration(labelText: 'Description'),
               maxLines: 3,
@@ -255,23 +291,69 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isSubmitting ? null : () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  widget.isEdit ? 'Product updated' : 'Product added',
-                ),
-              ),
-            );
-          },
-          child: const Text('Save'),
+        ElevatedButton(
+          onPressed: _isSubmitting ? null : _handleSave,
+          child: _isSubmitting
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('Save'),
         ),
       ],
     );
+  }
+
+  Future<void> _handleSave() async {
+    // Basic validation
+    if (_nameController.text.isEmpty || _imageUrlController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name and Image URL are required')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    final productProvider = Provider.of<ProductProvider>(context, listen: false);
+
+    // Sinkronisasi field dengan database (image_url, rating, description)
+    final productData = {
+      'name': _nameController.text,
+      'category': _categoryController.text,
+      'price': int.tryParse(_priceController.text) ?? 0,
+      'stock': int.tryParse(_stockController.text) ?? 0,
+      'description': _descriptionController.text,
+      'image_url': _imageUrlController.text,
+      'rating': double.tryParse(_ratingController.text) ?? 0.0,
+    };
+
+    bool success;
+    try {
+      if (widget.isEdit) {
+        success = await productProvider.updateProduct(widget.product!['id'] as int, productData);
+      } else {
+        success = await productProvider.createProduct(productData);
+      }
+    } catch (e) {
+      success = false;
+      print('Error in _handleSave: $e');
+    }
+
+    if (mounted) {
+      setState(() => _isSubmitting = false);
+      if (success) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(widget.isEdit ? 'Product updated' : 'Product added')),
+        );
+      } else {
+        // Tampilkan pesan error yang lebih spesifik jika ada di provider
+        final errorMessage = productProvider.error ?? 'Operation failed. Please check your server.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    }
   }
 }
