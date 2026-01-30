@@ -197,23 +197,33 @@ class _SignInScreenState extends State<SignInScreen> {
               children: [
                 // Logo Section
                 SizedBox(height: screenSize.height * 0.05),
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0099CC),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'GZ',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
+                // PERBAIKAN: Menggunakan Image.asset untuk memanggil logo.png
+                Image.asset(
+                  'assets/logo.png',
+                  width: 700,
+                  height: 150,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    // Fallback jika logo gagal dimuat
+                    return Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0099CC),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                    ),
-                  ),
+                      child: const Center(
+                        child: Text(
+                          'GZ',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 SizedBox(height: screenSize.height * 0.03),
 
@@ -235,7 +245,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
                 SizedBox(height: screenSize.height * 0.01),
                 Text(
-                  'Enter your email to sign up for this app',
+                  'Enter your email to sign-in for this app',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: Colors.grey[600],
                   ),
@@ -356,12 +366,17 @@ class _SignInScreenState extends State<SignInScreen> {
                         width: 1.5,
                       ),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('🔵'),
-                        SizedBox(width: 12),
-                        Text(
+                        Image.asset(
+                          'assets/icons/google.png',
+                          width: 20,
+                          height: 20,
+                          errorBuilder: (context, error, stackTrace) => const Text('🔵'),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
                           'Continue with Google',
                           style: TextStyle(
                             color: Color(0xFF0099CC),
@@ -393,7 +408,13 @@ class _SignInScreenState extends State<SignInScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('🍎'),
+                        Image.asset(
+                          'assets/icons/apple.png',
+                          width: 20,
+                          height: 20,
+                          color: isDarkMode ? Colors.white : Colors.black,
+                          errorBuilder: (context, error, stackTrace) => const Text('🍎'),
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           'Continue with Apple',
