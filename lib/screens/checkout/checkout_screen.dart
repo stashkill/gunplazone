@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../../providers/cart_provider.dart';
 import '../../providers/auth_provider.dart';
 
@@ -29,58 +31,74 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
-  void _handlePlaceOrder(BuildContext context, CartProvider cartProvider, AuthProvider authProvider) async {
-    if (_addressController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter shipping address')),
-      );
-      return;
-    }
+  Future<void> _handlePlaceOrder(
+  BuildContext context,
+  CartProvider cartProvider,
+) async {
+  debugPrint('HANDLE PLACE ORDER CALLED');
 
-    setState(() => _isProcessing = true);
+  if (_addressController.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please enter shipping address')),
+    );
+    return;
+  }
 
-    try {
-      // Convert userId from String to int
-      final userId = int.tryParse(authProvider.userId ?? '0') ?? 0;
+  setState(() => _isProcessing = true);
 
-      // Create order object
-      final order = {
-        'userId': userId,
-        'items': cartProvider.items,
-        'totalAmount': cartProvider.totalPrice, // Use actual cart total
+  try {
+    final url = Uri.parse('http://localhost:3000/api/orders');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        "userId": 2,
+        'items': cartProvider.items.map((e) => {
+          'productId': e.product.id,
+          'qty': e.quantity,
+          'price': e.product.price,
+        }).toList(),
+        'totalAmount': cartProvider.totalPrice,
         'shippingAddress': _addressController.text,
         'deliveryOption': _selectedDelivery,
         'paymentMethod': _selectedPayment,
-      };
+      }),
+    );
 
-      // TODO: Send to backend API
-      // await ApiService.createOrder(order);
+    debugPrint('STATUS: ${response.statusCode}');
+    debugPrint('BODY: ${response.body}');
 
-      // Simulate processing
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Clear cart
+    if (response.statusCode == 200 || response.statusCode == 201) {
       cartProvider.clearCart();
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Order placed successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        context.go('/home/orders');
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
-    } finally {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Order placed successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      context.go('/home/orders');
+    } else {
+      throw Exception('Failed to place order');
+    }
+  } catch (e) {
+    debugPrint('ERROR PLACE ORDER: $e');
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: $e')),
+    );
+  } finally {
+    if (mounted) {
       setState(() => _isProcessing = false);
     }
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -278,7 +296,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         width: double.infinity,
                         height: 48,
                         child: ElevatedButton(
-                          onPressed: _isProcessing ? null : () => _handlePlaceOrder(context, cartProvider, authProvider),
+                          onPressed: _isProcessing ? null : () => _handlePlaceOrder(context, cartProvider),
                           child: _isProcessing
                               ? const SizedBox(
                             height: 24,

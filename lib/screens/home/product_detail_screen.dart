@@ -30,7 +30,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Future<Product> _fetchProduct() async {
     try {
-      final response = await Dio().get('http://10.0.2.2:3000/api/products/${widget.productId}');
+      final response = await Dio().get('http://localhost:3000/api/products/${widget.productId}');
       if (response.statusCode == 200) {
         final data = response.data['data'] as Map<String, dynamic>;
         return Product.fromJson(data);
