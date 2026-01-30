@@ -204,18 +204,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     height: 28,
                     child: ElevatedButton(
                       onPressed: () {
-                        // Convert Map to Product object
-                        final productObj = Product(
-                          id: product['id'] ?? 0,
-                          name: product['name'] ?? 'Unknown',
-                          description: product['description'] ?? '',
-                          category: product['category'] ?? '',
-                          price: product['price'] ?? 0,
-                          imageUrl: product['image_url'] ?? '',
-                          stock: product['stock'] ?? 0,
-                          rating: (product['rating'] ?? 0).toDouble(),
-                          createdAt: DateTime.now(),
-                        );
+                        // Convert Map to Product object using safe fromJson
+                        final productObj = Product.fromJson(product);
                         cartProvider.addToCart(productObj);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('Added to cart')),

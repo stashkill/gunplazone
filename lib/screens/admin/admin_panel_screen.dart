@@ -79,7 +79,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                                     Chip(
                                       label: Text(product['category'] as String),
                                       backgroundColor:
-                                      Theme.of(context).primaryColor.withOpacity(0.1),
+                                      Theme.of(context).primaryColor.withValues(),
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
