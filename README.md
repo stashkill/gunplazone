@@ -105,7 +105,7 @@ flutter run -d web
 
 ## Backend API
 
-Aplikasi ini terhubung ke backend API di `http://localhost:3000/api`. Pastikan backend server sudah berjalan sebelum menjalankan aplikasi.
+Aplikasi ini terhubung ke backend API di `http://localhost:3000/api`. Pastikan backend server sudah berjalan sebelum menjalankan aplikasi yaa :D
 
 ### API Endpoints
 
@@ -220,22 +220,6 @@ CREATE TABLE favorites (
 );
 ```
 
-## Dummy Data
-
-Berikut adalah contoh dummy data untuk produk Gundam:
-
-```sql
-INSERT INTO products (name, description, category, price, stock, rating) VALUES
-('HG 1/144 Kamgfer', 'High Grade Gundam model kit dengan detail menakjubkan', 'HG', 109900, 15, 4.5),
-('HGCE 1/144 Mighty Strike Freedom', 'High Grade Cosmic Era Strike Freedom', 'HGCE', 219800, 8, 4.7),
-('PG 1/60 RX-78-2 Gundam', 'Perfect Grade original Gundam', 'PG', 899000, 3, 4.9),
-('RG 1/144 Sazabi', 'Real Grade Sazabi dengan detail tinggi', 'RG', 159900, 12, 4.6),
-('MG 1/100 Unicorn Gundam', 'Master Grade Unicorn Gundam', 'MG', 349900, 6, 4.8),
-('HG 1/144 Barbatos', 'High Grade Gundam Barbatos dari Iron-Blooded Orphans', 'HG', 129900, 10, 4.4),
-('RE/100 Jagd Doga', 'Real Entry Grade Jagd Doga', 'RE/100', 179900, 7, 4.5),
-('HG 1/144 Exia', 'High Grade Gundam Exia dari Gundam 00', 'HG', 119900, 14, 4.3);
-```
-
 ## Pengembangan Lebih Lanjut
 
 ### TODO
@@ -248,7 +232,7 @@ INSERT INTO products (name, description, category, price, stock, rating) VALUES
 - [ ] Analytics dan tracking
 - [ ] Offline mode dengan sync
 
-## Troubleshooting
+## Troubleshooting Kalo ada Problem
 
 ### Build Error
 ```bash
